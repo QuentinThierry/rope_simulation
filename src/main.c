@@ -1,6 +1,6 @@
 #include "../includes/rope_simu.h"
 
-t_vector2	circle_table[CIRCLE_RAY];
+t_vector2	circle_draw_table[CIRCLE_RAY];
 
 // assuming bits per pixel is always 32
 t_img	create_image(void *mlx_ptr, int width, int height)
@@ -20,22 +20,33 @@ t_img	create_image(void *mlx_ptr, int width, int height)
 	return (img);
 }
 
-void	init_circle_table()
+void	init_circle_draw_table()
 {
 	for (int i = 0; i < CIRCLE_RAY; i++)
 	{
-		circle_table[i].x = CIRCLE_RAY - sqrt((CIRCLE_RAY * CIRCLE_RAY) - (i * i));
-		circle_table[i].y = 2 * CIRCLE_RAY - 2 * circle_table[i].x;
+		circle_draw_table[i].x = CIRCLE_RAY - sqrt((CIRCLE_RAY * CIRCLE_RAY) - (i * i));
+		circle_draw_table[i].y = 2 * CIRCLE_RAY - 2 * circle_draw_table[i].x;
 	}
 }
 
-void	draw_circle_at(t_img *img, int x, int y)
+void	ft_fill_color(uint *ptr, uint color, size_t size)
+{
+	for (unsigned int i = 0; i < size; i++)
+	{
+		*ptr = color;
+		ptr++;
+	}
+}
+
+void	draw_circle_at(t_img *img, int x, int y, uint color)
 {
 	y += CIRCLE_RAY;
 	for (int i = 0; i < CIRCLE_RAY; i++)
 	{
-		memset(img->addr + img->size.x * y + x + circle_table[i].x, 0x50, circle_table[i].y * 4);
-		memset(img->addr + img->size.x * (y - CIRCLE_RAY) + x + circle_table[CIRCLE_RAY - i - 1].x, 0x50, circle_table[CIRCLE_RAY - i - 1].y * 4);
+		if (y < HEIGHT)
+			ft_fill_color(img->addr + img->size.x * y + x + circle_draw_table[i].x, color, circle_draw_table[i].y);
+		if (y - CIRCLE_RAY < HEIGHT)
+			ft_fill_color(img->addr + img->size.x * (y - CIRCLE_RAY) + x + circle_draw_table[CIRCLE_RAY - i - 1].x, color, circle_draw_table[CIRCLE_RAY - i - 1].y);
 		y++;
 	}
 }
@@ -61,7 +72,7 @@ void	draw_circles(t_infos *infos)
 	{
 		if (infos->circles[i].id != -1)
 		{
-			draw_circle_at(&infos->img, infos->circles[i].pos.x, infos->circles[i].pos.y);
+			draw_circle_at(&infos->img, infos->circles[i].pos.x, infos->circles[i].pos.y, infos->circles[i].color);
 		}
 	}
 }
@@ -72,7 +83,7 @@ void	calculate_forces(t_infos *infos)
 	{
 		if (infos->circles[i].id != -1)
 		{
-			infos->circles[i].force.y += GRAVITY * infos->delta_time;
+			
 		}
 	}
 }
@@ -81,10 +92,61 @@ void	apply_forces(t_infos *infos)
 {
 	for (int i = 0; i < NB_MAX_CIRCLES; i++)
 	{
-		if (infos->circles[i].id != -1)
+		if (infos->circles[i].id != -1 && !infos->circles[i].is_locked)
 		{
 			infos->circles[i].pos.x += infos->circles[i].force.x;
 			infos->circles[i].pos.y += infos->circles[i].force.y;
+
+			infos->circles[i].pos.y += GRAVITY * infos->delta_time;
+		}
+	}
+}
+
+void	delete_lost_circles(t_infos *infos)
+{
+	for (int i = 0; i < NB_MAX_CIRCLES; i++)
+	{
+		if (infos->circles[i].id != -1 && infos->circles[i].pos.y > HEIGHT)
+		{
+			memset(&infos->circles[i], 0, sizeof(t_circle));
+			infos->circles[i].id = -1;
+		}
+	}
+}
+
+
+void	draw_line(t_vector2 p1, t_vector2 p2, t_img *img)
+{
+	t_dvector2	dir;
+	int			dist;
+
+	dist = sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
+	dir.x = (double)(p2.x - p1.x) / dist;
+	dir.y = (double)(p2.y - p1.y) / dist;
+	for (int i = 0; i < dist; i++)
+	{
+		*(img->addr + ((int)(p1.y + i * dir.y) * HEIGHT) + (int)(p1.x + i * dir.x)) = 0xFF0000;
+	}
+}
+
+void	draw_links(t_infos *infos)
+{
+	for (int i = 0; i < NB_MAX_CIRCLES; i++)
+	{
+		if (infos->circles[i].id == -1)
+			continue ;
+		for (int j = 0; j < NB_MAX_LINKS; j++)
+		{
+			if (infos->circles[i].links[j] != -1)// && infos->circles[i].links[j] > infos->circles[i].id)
+			{
+				t_vector2 p1, p2;
+				p1.x = infos->circles[infos->circles[i].links[j]].pos.x + CIRCLE_RAY;
+				p1.y = infos->circles[infos->circles[i].links[j]].pos.y + CIRCLE_RAY;
+
+				p2.x = infos->circles[i].pos.x + CIRCLE_RAY;
+				p2.y = infos->circles[i].pos.y + CIRCLE_RAY;
+				draw_line(p1, p2, &infos->img);
+			}
 		}
 	}
 }
@@ -94,6 +156,12 @@ int	on_update(t_infos *infos)
 	static int cmp = 0;
 
 	infos->delta_time = get_delta_time();
+	if (infos->is_pause)
+	{
+		draw_circles(infos);
+		mlx_put_image_to_window(infos->mlx_ptr, infos->window, infos->img.img, 0, 0);
+		return (0);
+	}
 	cmp++;
 	if (cmp % 500 == 0)
 	{
@@ -104,6 +172,8 @@ int	on_update(t_infos *infos)
 	calculate_forces(infos);
 	apply_forces(infos);
 	draw_circles(infos);
+	draw_links(infos);
+	delete_lost_circles(infos);
 	mlx_put_image_to_window(infos->mlx_ptr, infos->window, infos->img.img, 0, 0);
 
 
@@ -117,14 +187,15 @@ int main(void)
 	infos.mlx_ptr = mlx_init();
 	if (!infos.mlx_ptr)
 		return (1); // error
-	infos.window = mlx_new_window(infos.mlx_ptr, 1000, 1000, "rope_simu");
+	infos.window = mlx_new_window(infos.mlx_ptr, WIDTH, HEIGHT, "rope_simu");
 	if (!infos.window)
 		return (1); // error
-	infos.img = create_image(infos.mlx_ptr, 1000, 1000);
+	infos.img = create_image(infos.mlx_ptr, WIDTH, HEIGHT);
 	if (!infos.img.addr)
 		return (1); // error
+	infos.is_pause = true;
 	memset(infos.circles, -1, NB_MAX_CIRCLES * sizeof(t_circle));
-	init_circle_table();
+	init_circle_draw_table();
 	memset(infos.img.addr, 0x35, infos.img.size.x * infos.img.size.y * 4);
 
 	mlx_mouse_hook(infos.window, click_mouse, &infos);
