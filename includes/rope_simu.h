@@ -37,12 +37,12 @@ typedef struct s_dvector2
 	double y;
 }	t_dvector2;
 
-// typedef struct s_link
-// {
-// 	int	left_id;
-// 	int	right_id;
-// 	double	lenght;
-// }	t_link;
+typedef struct s_link
+{
+	int	left_id;
+	int	right_id;
+	double	length;
+}	t_link;
 
 typedef struct s_img
 {
@@ -58,7 +58,7 @@ typedef struct s_circle
 	t_dvector2	force;
 	bool		is_locked;
 	uint		color;
-	int			links[NB_MAX_LINKS];
+	t_link		links[NB_MAX_LINKS];
 }	t_circle;
 
 typedef struct s_infos

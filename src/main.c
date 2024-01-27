@@ -88,16 +88,56 @@ void	calculate_forces(t_infos *infos)
 	}
 }
 
+t_dvector2	normalize(t_vector2 vector)
+{
+	double	magn;
+
+	magn = sqrtf((vector.x * vector.x) + (vector.y * vector.y));
+	if (magn == 0)
+		return ((t_dvector2){1, 1});
+	return ((t_dvector2){vector.x / magn, vector.y / magn});
+}
+
 void	apply_forces(t_infos *infos)
 {
 	for (int i = 0; i < NB_MAX_CIRCLES; i++)
 	{
-		if (infos->circles[i].id != -1 && !infos->circles[i].is_locked)
+		
+
+		for (int j = 0; j < NB_MAX_LINKS; j++)
 		{
-			infos->circles[i].pos.x += infos->circles[i].force.x;
-			infos->circles[i].pos.y += infos->circles[i].force.y;
+			t_link link;
+			if (infos->circles[i].links[j].right_id != -1 && infos->circles[i].links[j].right_id < infos->circles[i].id)
+			{
+				link = infos->circles[i].links[j];
+				t_vector2 link_center =
+					{(infos->circles[link.right_id].pos.x + infos->circles[link.left_id].pos.x) / 2,
+					(infos->circles[link.right_id].pos.y + infos->circles[link.left_id].pos.y) / 2};
+				// printf("left : %f, %f / right : %f, %f / center : %d, %d\n", infos->circles[link.right_id].pos.x, infos->circles[link.right_id].pos.y, infos->circles[link.left_id].pos.x, infos->circles[link.left_id].pos.y, link_center.x, link_center.y);
+				t_dvector2 link_dir = normalize((t_vector2){
+					infos->circles[link.right_id].pos.x - infos->circles[link.left_id].pos.x,
+					infos->circles[link.right_id].pos.y - infos->circles[link.left_id].pos.y
+				});
+				if (!infos->circles[link.right_id].is_locked)
+				{
+					infos->circles[link.right_id].pos.x = link_center.x + link_dir.x * (link.length / 2);
+					infos->circles[link.right_id].pos.y = link_center.y + link_dir.y * (link.length / 2);
+				}
+				// printf("applied : %f, %f\n", link_center.x + link_dir.x * (link.length / 2), link_center.y + link_dir.y * (link.length / 2));
+				if (!infos->circles[link.left_id].is_locked)
+				{
+					infos->circles[link.left_id].pos.x = link_center.x - link_dir.x * (link.length / 2);
+					infos->circles[link.left_id].pos.y = link_center.y - link_dir.y * (link.length / 2);
+				}
+				// exit(0);
+			}
+			if (infos->circles[i].id != -1 && !infos->circles[i].is_locked)
+		{
+			// infos->circles[i].pos.x += infos->circles[i].force.x;
+			// infos->circles[i].pos.y += infos->circles[i].force.y;
 
 			infos->circles[i].pos.y += GRAVITY * infos->delta_time;
+		}
 		}
 	}
 }
@@ -137,11 +177,11 @@ void	draw_links(t_infos *infos)
 			continue ;
 		for (int j = 0; j < NB_MAX_LINKS; j++)
 		{
-			if (infos->circles[i].links[j] != -1)// && infos->circles[i].links[j] > infos->circles[i].id)
+			if (infos->circles[i].links[j].right_id != -1 && infos->circles[i].links[j].right_id < infos->circles[i].id)
 			{
 				t_vector2 p1, p2;
-				p1.x = infos->circles[infos->circles[i].links[j]].pos.x + CIRCLE_RAY;
-				p1.y = infos->circles[infos->circles[i].links[j]].pos.y + CIRCLE_RAY;
+				p1.x = infos->circles[infos->circles[i].links[j].right_id].pos.x + CIRCLE_RAY;
+				p1.y = infos->circles[infos->circles[i].links[j].right_id].pos.y + CIRCLE_RAY;
 
 				p2.x = infos->circles[i].pos.x + CIRCLE_RAY;
 				p2.y = infos->circles[i].pos.y + CIRCLE_RAY;

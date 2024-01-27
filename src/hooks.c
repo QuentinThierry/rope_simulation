@@ -55,7 +55,7 @@ static int	get_open_linked_id(t_circle *circle)
 {
 	for (int i = 0; i < NB_MAX_LINKS; i++)
 	{
-		if (circle->links[i] == -1)
+		if (circle->links[i].left_id == -1)
 			return i;
 	}
 	return -1;
@@ -65,7 +65,7 @@ static bool	already_has_link(t_circle *circle, int id)
 {
 	for (int i = 0; i < NB_MAX_LINKS; i++)
 	{
-		if (circle->links[i] == id)
+		if (circle->links[i].left_id == id)
 			return false;
 	}
 	return true;
@@ -74,6 +74,17 @@ static bool	already_has_link(t_circle *circle, int id)
 static void reset_circle_color(t_circle *circle)
 {
 	circle->is_locked ? (circle->color = CIRCLE_COLOR_LOCKED) : (circle->color = CIRCLE_COLOR_UNLOCKED);
+}
+
+static void fill_link_infos(t_link *link, int id_left, int id_right, t_infos *infos)
+{
+	link->left_id = id_left;
+	link->right_id = id_right;
+	link->length =
+		sqrt((infos->circles[id_left].pos.x - infos->circles[id_right].pos.x)
+		* (infos->circles[id_left].pos.x - infos->circles[id_right].pos.x)
+		+ (infos->circles[id_left].pos.y - infos->circles[id_right].pos.y)
+		* (infos->circles[id_left].pos.y - infos->circles[id_right].pos.y));
 }
 
 static void	create_link(int x, int y, int *nb_link_click, int id, t_infos *infos)
@@ -107,8 +118,10 @@ static void	create_link(int x, int y, int *nb_link_click, int id, t_infos *infos
 	waiting_link_id = get_open_linked_id(&infos->circles[waiting_circle_id]);
 	if (!already_has_link(&infos->circles[id], waiting_circle_id))
 		return ;
-	infos->circles[id].links[link_id] = waiting_link_id;
-	infos->circles[waiting_circle_id].links[waiting_link_id] = link_id;
+	if (!already_has_link(&infos->circles[waiting_circle_id], id))
+		return ;
+	fill_link_infos(&infos->circles[id].links[link_id], id, waiting_circle_id, infos);
+	fill_link_infos(&infos->circles[waiting_circle_id].links[waiting_link_id], waiting_circle_id, id, infos);
 	reset_circle_color(&infos->circles[waiting_circle_id]);
 	*nb_link_click = 0;
 	waiting_circle_id = -1;
