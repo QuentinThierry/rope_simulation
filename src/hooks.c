@@ -28,6 +28,7 @@ static void	add_circle_to_pool(int x, int y, t_infos *infos)
 			infos->circles[i].force.y = 0;
 			infos->circles[i].is_locked = true;
 			infos->circles[i].color = CIRCLE_COLOR_LOCKED;
+			infos->circles[i].prev_pos = infos->circles[i].pos;
 			draw_circle_at(&infos->img, x, y, infos->circles[i].color);
 			break ;
 		}

@@ -77,24 +77,14 @@ void	draw_circles(t_infos *infos)
 	}
 }
 
-void	calculate_forces(t_infos *infos)
-{
-	for (int i = 0; i < NB_MAX_CIRCLES; i++)
-	{
-		if (infos->circles[i].id != -1)
-		{
-			
-		}
-	}
-}
 
-t_dvector2	normalize(t_vector2 vector)
+t_dvector2	normalize(t_dvector2 vector)
 {
 	double	magn;
 
-	magn = sqrtf((vector.x * vector.x) + (vector.y * vector.y));
+	magn = sqrt((vector.x * vector.x) + (vector.y * vector.y));
 	if (magn == 0)
-		return ((t_dvector2){1, 1});
+		return ((t_dvector2){0, 0});
 	return ((t_dvector2){vector.x / magn, vector.y / magn});
 }
 
@@ -102,44 +92,55 @@ void	apply_forces(t_infos *infos)
 {
 	for (int i = 0; i < NB_MAX_CIRCLES; i++)
 	{
-		
-
-		for (int j = 0; j < NB_MAX_LINKS; j++)
+		if (infos->circles[i].id != -1 && !infos->circles[i].is_locked)
 		{
-			t_link link;
-			if (infos->circles[i].links[j].right_id != -1 && infos->circles[i].links[j].right_id < infos->circles[i].id)
-			{
-				link = infos->circles[i].links[j];
-				t_vector2 link_center =
-					{(infos->circles[link.right_id].pos.x + infos->circles[link.left_id].pos.x) / 2,
-					(infos->circles[link.right_id].pos.y + infos->circles[link.left_id].pos.y) / 2};
-				// printf("left : %f, %f / right : %f, %f / center : %d, %d\n", infos->circles[link.right_id].pos.x, infos->circles[link.right_id].pos.y, infos->circles[link.left_id].pos.x, infos->circles[link.left_id].pos.y, link_center.x, link_center.y);
-				t_dvector2 link_dir = normalize((t_vector2){
-					infos->circles[link.right_id].pos.x - infos->circles[link.left_id].pos.x,
-					infos->circles[link.right_id].pos.y - infos->circles[link.left_id].pos.y
-				});
-				if (!infos->circles[link.right_id].is_locked)
-				{
-					infos->circles[link.right_id].pos.x = link_center.x + link_dir.x * (link.length / 2);
-					infos->circles[link.right_id].pos.y = link_center.y + link_dir.y * (link.length / 2);
-				}
-				// printf("applied : %f, %f\n", link_center.x + link_dir.x * (link.length / 2), link_center.y + link_dir.y * (link.length / 2));
-				if (!infos->circles[link.left_id].is_locked)
-				{
-					infos->circles[link.left_id].pos.x = link_center.x - link_dir.x * (link.length / 2);
-					infos->circles[link.left_id].pos.y = link_center.y - link_dir.y * (link.length / 2);
-				}
-				// exit(0);
-			}
-			if (infos->circles[i].id != -1 && !infos->circles[i].is_locked)
-		{
-			// infos->circles[i].pos.x += infos->circles[i].force.x;
-			// infos->circles[i].pos.y += infos->circles[i].force.y;
+			t_dvector2 pos_tmp = infos->circles[i].pos;
+			infos->circles[i].pos.x += (infos->circles[i].pos.x - infos->circles[i].prev_pos.x) * AIR_FRICTION;
+			infos->circles[i].pos.y += (infos->circles[i].pos.y - infos->circles[i].prev_pos.y) * AIR_FRICTION;
 
-			infos->circles[i].pos.y += GRAVITY * infos->delta_time;
-		}
+			infos->circles[i].pos.y += GRAVITY * infos->delta_time * AIR_FRICTION;
+
+
+			infos->circles[i].prev_pos = pos_tmp;
 		}
 	}
+
+	for (int iter = 0; iter < 100; iter++)
+	{
+		for (int i = 0; i < NB_MAX_CIRCLES; i++)
+		{
+			t_circle *circles = infos->circles;
+			for (int j = 0; j < NB_MAX_LINKS; j++)
+			{
+				if (circles[i].links[j].right_id != -1 && circles[i].links[j].right_id < circles[i].links[j].left_id)
+				{
+					t_link *link = &circles[i].links[j];
+
+					t_dvector2 link_center =
+						{(circles[link->right_id].pos.x + circles[link->left_id].pos.x) / 2,
+						(circles[link->right_id].pos.y + circles[link->left_id].pos.y) / 2};
+
+					t_dvector2 link_dir = normalize((t_dvector2){
+						circles[link->right_id].pos.x - circles[link->left_id].pos.x,
+						circles[link->right_id].pos.y - circles[link->left_id].pos.y
+					});
+					
+					if (!circles[link->right_id].is_locked)
+					{
+						circles[link->right_id].pos.x = link_center.x + link_dir.x * (link->length / 2);
+						circles[link->right_id].pos.y = link_center.y + link_dir.y * (link->length / 2);
+					}
+
+					if (!circles[link->left_id].is_locked)
+					{
+						circles[link->left_id].pos.x = link_center.x - (link_dir.x * (link->length / 2));
+						circles[link->left_id].pos.y = link_center.y - (link_dir.y * (link->length / 2));
+					}
+				}
+			}
+		}
+	}
+
 }
 
 void	delete_lost_circles(t_infos *infos)
@@ -205,11 +206,10 @@ int	on_update(t_infos *infos)
 	cmp++;
 	if (cmp % 500 == 0)
 	{
-		printf("%lf\n", 1 / infos->delta_time);
+		printf("fps %lf\n", 1 / infos->delta_time);
 		cmp = 0;
 	}
 	memset(infos->img.addr, 0x35, infos->img.size.x * infos->img.size.y * 4);
-	calculate_forces(infos);
 	apply_forces(infos);
 	draw_circles(infos);
 	draw_links(infos);

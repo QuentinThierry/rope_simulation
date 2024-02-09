@@ -21,7 +21,8 @@
 #define CIRCLE_COLOR_LOCKED 0x990000
 #define CIRCLE_COLOR_LINKING 0x009900
 
-#define	GRAVITY 100 // pixels per second
+#define	GRAVITY 10 // pixels per second
+#define AIR_FRICTION 0.9999 // amount of speed lost per deplacement
 
 typedef unsigned int uint;
 
@@ -54,6 +55,7 @@ typedef struct s_img
 typedef struct s_circle
 {
 	t_dvector2	pos;
+	t_dvector2	prev_pos;
 	int			id;
 	t_dvector2	force;
 	bool		is_locked;
