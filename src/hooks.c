@@ -88,7 +88,7 @@ static void fill_link_infos(t_link *link, int id_left, int id_right, t_infos *in
 		* (infos->circles[id_left].pos.y - infos->circles[id_right].pos.y));
 }
 
-static void	create_link(int x, int y, int *nb_link_click, int id, t_infos *infos)
+static void	create_link(int *nb_link_click, int id, t_infos *infos)
 {
 	static int	waiting_circle_id = -1;
 
@@ -149,14 +149,14 @@ int	click_mouse(int key_code, int x, int y, t_infos *infos)
 	if (key_code == 1)
 	{
 		nb_link_click = -1;
-		create_link(x, y, &nb_link_click, -1, infos);
+		create_link(&nb_link_click, -1, infos);
 		click_left_mouse(x, y, infos);
 	}
 	else if (key_code == 3)
 	{
 		int id = detect_circle(x, y, infos);
 		if (id != -1)
-			create_link(x, y, &nb_link_click, id, infos);
+			create_link(&nb_link_click, id, infos);
 	}
 	return (0);
 }
