@@ -1,15 +1,3 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: qthierry <qthierry@student.42.fr>          +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2023/01/31 18:39:31 by jvigny            #+#    #+#              #
-#    Updated: 2024/01/16 20:55:26 by qthierry         ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
-
 NAME = rope_simu
 
 CC = gcc
@@ -32,8 +20,7 @@ MINILIBX_HEADERS = $(MINILIBX_DIR)
 MINILIBX = $(MINILIBX_DIR)libmlx.a
 # ----------------------------------------
 
-SRC_LIST =	\
-			hooks.c \
+SRC_LIST =	hooks.c \
 			main.c
 
 SRC_DIR = ./src/
@@ -45,8 +32,6 @@ OBJ = $(addprefix $(OBJ_DIR), $(OBJ_LIST))
 DEP_LIST = $(patsubst %.o,%.d, $(OBJ))
 
 all:	$(NAME)
-
-bonus:	all
 
 -include $(DEP_LIST)
 
@@ -64,12 +49,14 @@ $(MINILIBX):
 	@echo "   ${GREEN}- Fetching sources...${RESET_COLOR}"
 	@if [ ! -d "$(MINILIBX_DIR)" ]; then \
 		git clone $(MINILIBX_URL) $(MINILIBX_DIR); \
+		cd $(MINILIBX_DIR); \
+		git checkout 7dc53a411a7d4ae286c60c6229bd1e395b0efb82 2>/dev/null; \
 	else \
 		cd $(MINILIBX_DIR) && git pull; \
 	fi
 	@echo "   ${GREEN}- Compiling sources...${RESET_COLOR}"
 	@make -s -C $(MINILIBX_DIR) all $(REDIRECT_ERROR)
-	@echo "${GREEN}~ DONE ~\n${RESET_COLOR}"
+	@echo "${GREEN}~ DONE ~${RESET_COLOR}"
 
 clean_minilibx:
 	rm -rf $(MINILIBX_DIR)
@@ -82,4 +69,4 @@ fclean:	clean clean_minilibx
 
 re: fclean all
 
-.PHONY : all bonus clean fclean re run vrun prun clean_minilibx
+.PHONY : all clean fclean re clean_minilibx
